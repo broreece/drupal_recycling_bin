@@ -1,0 +1,10 @@
+recycle_bin_node_link:
+  route_name: recycling_bin.node.place_in_bin_form
+  title: 'Delete'
+  base_route: entity.node.canonical
+  weight: 10
+recycle_bin_media_link:
+  route_name: recycling_bin.media.place_in_bin_form
+  title: 'Delete'
+  base_route: entity.media.canonical
+  weight: 10

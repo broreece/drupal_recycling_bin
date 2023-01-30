@@ -1,0 +1,75 @@
+recycling_bin.config_form:
+  path: 'admin/config/content/recycling_bin'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinConfigForm'
+    _title: 'Recycling bin configurations'
+  requirements:
+    _permission: 'administer recycling bin configurations'
+
+recycling_bin.node.place_in_bin_form:
+  path: 'admin/node/{node}/recycle'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinNodePlaceInBinForm'
+    _title: 'Delete node'
+  requirements:
+    _recycle_check: 'TRUE'
+  options:
+    parameters:
+      node:
+        type: entity:node
+recycling_bin.node.confirm_delete_form:
+  path: 'admin/content/recycling_bin/{node}/delete'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinNodeConfirmDeletionForm'
+    _title: 'Permanently delete node'
+  requirements:
+    _permission: 'access recycling bin'
+  options:
+    parameters:
+      node:
+        type: entity:node
+recycling_bin.node.restore_form:
+  path: 'admin/content/recycling_bin/{node}/restore'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinNodeConfirmRestoreForm'
+    _title: 'Restore node'
+  requirements:
+    _permission: 'access recycling bin'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+recycling_bin.media.place_in_bin_form:
+  path: 'admin/media/{media}/recycle'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinMediaPlaceInBinForm'
+    _title: 'Delete media'
+  requirements:
+    _recycle_check: 'TRUE'
+  options:
+    parameters:
+      media:
+        type: entity:media
+recycling_bin.media.confirm_delete_form:
+  path: 'admin/media/recycling_bin/{media}/delete'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinMediaConfirmDeletionForm'
+    _title: 'Permanently delete media'
+  requirements:
+    _permission: 'access recycling bin'
+  options:
+    parameters:
+      media:
+        type: entity:media
+recycling_bin.media.restore_form:
+  path: 'admin/media/recycling_bin/{media}/restore'
+  defaults:
+    _form: 'Drupal\recycling_bin\Form\RecyclingBinMediaConfirmRestoreForm'
+    _title: 'Restore media'
+  requirements:
+    _permission: 'access recycling bin'
+  options:
+    parameters:
+      media:
+        type: entity:media

@@ -1,0 +1,200 @@
+<?php
+
+/**
+ * @file
+ * This is the module file that disables access to nodes in the recycling bin and adds operations for recycling bin view.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_form_alter().
+ */
+function recycling_bin_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Hides the field in the entity forms.
+  $content_edit_forms = [
+    'entity_form_display_edit_form',
+    'entity_view_display_edit_form',
+  ];
+  $rows = FALSE;
+  if (in_array($form_id, $content_edit_forms)) {
+    $fields = $form['#fields'];
+    foreach ($fields as $key => $field) {
+      if ($field == 'in_recycle') {
+        unset($form['fields'][$field]);
+      }
+    }
+  }
+  // Hide rows for nodes in recycling bin and old delete operation.
+  else if (substr($form_id, 0, 23) == 'views_form_content_page') {
+    $rows = TRUE;
+    unset($form['header']['node_bulk_form']['action']['#options']['node_delete_action']);
+  }
+  else if ($form_id == 'views_form_media_media_page_list') {
+    $rows = TRUE;
+    unset($form['header']['media_bulk_form']['action']['#options']['media_delete_action']);
+  }
+  if ($rows) {
+    foreach ($form['output'][0]['#rows'] as $key => $row) {
+      $entity = $row->_entity;
+      if ($entity->hasField('in_recycle') && $entity->get('in_recycle')->value) {
+        unset($form['output'][0]['#rows'][$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function recycling_bin_entity_operation(EntityInterface $entity) {
+  // If node is in the recycling bin add operations to delete and restore.
+  $bundle = $entity->bundle();
+  $operations = [];
+  if (Drupal::service('recycling_bin.manager')->is_content_set($bundle)) {
+    // If node is already in recycle present operations to delete permanently or restore.
+    if ($entity->get('in_recycle')->value) {
+      $operations['delete_permanently'] = [
+        'title' => t('Delete permanently'),
+        'url' => Url::fromRoute('recycling_bin.node.confirm_delete_form', ['node' => $entity->id()]),
+        'weight' => 10,
+      ];
+
+      $operations['restore'] = [
+        'title' => t('Restore'),
+        'url' => Url::fromRoute('recycling_bin.node.restore_form', ['node' => $entity->id()]),
+        'weight' => 11,
+      ];
+    }
+    // If node can be recycled replace old delete with new put in recycle.
+    else {
+      $operations['put_in_recycle'] = [
+        'title' => t('Delete'),
+        'url' => Url::fromRoute('recycling_bin.node.place_in_bin_form', ['node' => $entity->id()]),
+        'weight' => 99,
+      ];
+    }
+  }
+  else if (Drupal::service('recycling_bin.manager')->is_media_set($bundle)) {
+      if ($entity->get('in_recycle')->value) {
+        $operations['delete_permanently'] = [
+          'title' => t('Delete permanently'),
+          'url' => Url::fromRoute('recycling_bin.media.confirm_delete_form', ['media' => $entity->id()]),
+          'weight' => 10,
+        ];
+
+        $operations['restore'] = [
+          'title' => t('Restore'),
+          'url' => Url::fromRoute('recycling_bin.media.restore_form', ['media' => $entity->id()]),
+          'weight' => 11,
+        ];
+      }
+      // If node can be recycled replace old delete with new put in recycle.
+      else {
+        $operations['put_in_recycle'] = [
+          'title' => t('Delete'),
+          'url' => Url::fromRoute('recycling_bin.media.place_in_bin_form', ['media' => $entity->id()]),
+          'weight' => 99,
+        ];
+      }
+    }
+  return $operations;
+}
+
+/**
+ * Implements hook_entity_operations_alter().
+ */
+function recycling_bin_entity_operation_alter(array &$operations, EntityInterface $entity) {
+  // If node is in the recycling bin remove old operations.
+  if (Drupal::service('recycling_bin.manager')->is_set($entity->bundle())) {
+    if ($entity->get('in_recycle')->value) {
+      unset($operations['edit']);
+    }
+    unset($operations['delete']);
+  }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function recycling_bin_views_query_alter($view, $query) {
+  switch($view->id()) {
+    case 'recycling_bin':
+      // If config is not yet set.
+      if (Drupal::service('recycling_bin.manager')->is_content_active()) {
+        $query->where[1]['conditions'][] = [
+          'field' => 'node__in_recycle.in_recycle_value',
+          'value' => 1,
+          'operator' => '=',
+        ];
+      }
+      else {
+        // Impossible filter to ensure no data is selected.
+        $query->where[1]['conditions'][] = [
+          'field' => 'node_field_data.nid',
+          'value' => 0,
+          'operator' => 'IN',
+        ];
+      }
+      break;
+
+    case 'media_recycling_bin':
+      // If config is not yet set.
+      if (Drupal::service('recycling_bin.manager')->is_media_active()) {
+        $query->where[1]['conditions'][] = [
+          'field' => 'media__in_recycle.in_recycle_value',
+          'value' => 1,
+          'operator' => '=',
+        ];
+      }
+      else {
+        // Impossible filter to ensure no data is selected.
+        $query->where[1]['conditions'][] = [
+          'field' => 'media_field_data.mid',
+          'value' => 0,
+          'operator' => 'IN',
+        ];
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function recycling_bin_cron() {
+  $recycle_config = Drupal::config('recycling_bin.settings');
+  $length = $recycle_config->get('clear_frequency');
+  if ($length != 'never') {
+    $last_recycle = Drupal::state()->get('last_recycle');
+    $recycle_frequency = intval($recycle_config->get('clear_frequency'));
+    if (time() > ($last_recycle + $recycle_frequency)) {
+      // Delete all content in recycling bin.
+      $content_types = $recycle_config->get('node_types');
+      foreach ($content_types as $content_type => $set) {
+        if ($set) {
+          $recycled_content = \Drupal::entityTypeManager()->getStorage('node')->loadByProperties(['type' => $content_type, 'in_recycle' => TRUE]);
+          foreach ($recycled_content as $content) {
+            $content->delete();
+          }
+        }
+      }
+      // Delete all media in recycling bin.
+      $media_types = $recycle_config->get('media_types');
+      foreach ($media_types as $media_type => $set) {
+        if ($set) {
+          $recycled_media = \Drupal::entityTypeManager()->getStorage('media')->loadByProperties(['type' => $media_type, 'in_recycle' => TRUE]);
+          foreach ($recycled_media as $media) {
+            $media->delete();
+          }
+        }
+      }
+      Drupal::state()->set('last_recycle', time());
+    }
+  }
+}

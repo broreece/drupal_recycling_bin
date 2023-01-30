@@ -1,0 +1,7 @@
+access recycling bin:
+  title: Access the recycling bin recovery page
+  description: Access the recycling bin view allowing recovery of content.
+
+administer recycling bin configurations:
+  title: Administer recycling bin configurations
+  description: Edit content types and cron execution time for the recycling bin.

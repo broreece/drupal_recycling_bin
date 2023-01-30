@@ -1,0 +1,6 @@
+action.configuration.recycling_node_bin:
+  type: recycle_node_action
+  label: 'Delete selected'
+action.configuration.recycling_media_bin:
+  type: recycle_media_action
+  label: 'Delete selected'

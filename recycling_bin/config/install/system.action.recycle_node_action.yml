@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: recycle_node_action
+label: 'Delete selected'
+type: node
+plugin: recycle_node_action
+configuration: {  }

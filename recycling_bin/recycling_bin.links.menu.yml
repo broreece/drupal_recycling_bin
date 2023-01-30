@@ -1,0 +1,5 @@
+recycling_bin.configuration:
+  title: 'Recycling bin configurations'
+  description: 'Configure the recycling bin.'
+  parent: system.admin_config_system
+  route_name: recycling_bin.config_form

@@ -1,0 +1,28 @@
+services:
+  recycling_bin.manager:
+    class: Drupal\recycling_bin\Service\RecyclingBinManager
+    arguments: ['@config.factory' ]
+  recycling_bin_permissions.node_route_access:
+    class: Drupal\recycling_bin\Routing\RecyclingBinRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+  recycling_bin_access.place_in_bin:
+    class: Drupal\recycling_bin\Access\RecycleAccessCheck
+    arguments: [ '@current_route_match', '@current_user', '@recycling_bin.manager' ]
+    tags:
+      - { name: access_check, applies_to: _recycle_check }
+  recycling_bin_access.edit:
+    class: Drupal\recycling_bin\Access\EditAccessCheck
+    arguments: [ '@current_route_match', '@current_user', '@recycling_bin.manager' ]
+    tags:
+      - { name: access_check }
+  recycling_bin_access.delete:
+    class: Drupal\recycling_bin\Access\DeletionAccessCheck
+    arguments: ['@current_route_match', '@current_user', '@recycling_bin.manager']
+    tags:
+      - { name: access_check }
+  recycling_bin_access.general:
+    class: Drupal\recycling_bin\Access\GeneralAccessCheck
+    arguments: [ '@current_route_match', '@current_user', '@recycling_bin.manager' ]
+    tags:
+      - { name: access_check }

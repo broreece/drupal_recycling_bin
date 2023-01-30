@@ -1,0 +1,10 @@
+name: Recycling bin
+description: 'Adds recycling bin feature to content and media.'
+type: module
+core_version_requirement: ^8 || ^9 || ^10
+configure: recycling_bin.config_form
+dependencies:
+  - 'drupal:filter'
+  - 'drupal:user'
+  - 'drupal:system'
+  - 'drupal:views'

@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the recycling_bin module.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_uninstall().
+ */
+function recycling_bin_uninstall() {
+  $recycle_config = Drupal::config('recycling_bin.settings');
+  $content_types = $recycle_config->get('node_types');
+  $media_types = $recycle_config->get('media_types');
+
+  if ($content_types != null) {
+    foreach ($content_types as $content_type => $set) {
+      if ($set) {
+        $field = FieldConfig::loadByName('node', $content_type, 'in_recycle');
+        if (!empty($field)) {
+          $field->delete();
+        }
+      }
+    }
+  }
+  if ($media_types != null) {
+    foreach ($media_types as $media_type => $set) {
+      if ($set) {
+        $field = FieldConfig::loadByName('media', $media_type, 'in_recycle');
+        if (!empty($field)) {
+          $field->delete();
+        }
+      }
+    }
+  }
+  // Check if field storage remains in config after deleting fields.
+  $node_field_storage = FieldStorageConfig::loadByName('node', 'in_recycle');
+  if (!empty($node_field_storage)) {
+    $node_field_storage->delete();
+  }
+  $media_field_storage = FieldStorageConfig::loadByName('media', 'in_recycle');
+  if (!empty($media_field_storage)) {
+    $media_field_storage->delete();
+  }
+
+  \Drupal::configFactory()->getEditable('views.view.recycling_bin')->delete();
+  \Drupal::configFactory()->getEditable('views.view.media_recycling_bin')->delete();
+  \Drupal::configFactory()->getEditable('recycling_bin.settings')->delete();
+
+  drupal_flush_all_caches();
+}
